@@ -1,4 +1,6 @@
 #!/bin/bash
+#A simple script to extract and merge an rpm-ostree commit from Image Builder with an existing ostree repo
+
 
 UPDATEPATH=/var/www/html/ostree/update
 REPOPATH=/var/www/html/ostree/repo
