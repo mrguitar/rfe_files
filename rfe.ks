@@ -32,7 +32,7 @@ user --name=core --groups=wheel --iscrypted --password=$6$3OrUXJfD.64WiZl2$4/oBF
 #sshkey --username=core "ssh-rsa AAA......."
 
 #Ensure the tar from Image Builder is served on an accessible web endpoint listed here:
-ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=http://192.168.81.20/repo/ --ref=rhel/8/x86_64/edge
+ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=http://192.168.81.20/ostree/repo/ --ref=rhel/8/x86_64/edge
 
 
 %post
@@ -41,7 +41,7 @@ ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=http://192.168.8
 echo AutomaticUpdatePolicy=stage >> /etc/rpm-ostreed.conf
 systemctl enable rpm-ostreed-automatic.timer
 
-#configure clevis to unlock the luks volumes using the TPM2. Adjust /dev/vda appropriotely. 
+#configure clevis to unlock the luks volumes using the TPM2. Adjust /dev/vda appropriately. 
 clevis luks bind -f -k- -d /dev/vda2 tpm2 '{}' \ <<<"temppass"
 clevis luks bind -f -k- -d /dev/vda6 tpm2 '{}' \ <<<"temppass"
 
