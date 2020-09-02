@@ -2,6 +2,8 @@
 
 This is a demo/example similar to gicmo's work [here.](https://github.com/gicmo/rfe-demo) The repo includes some rudimentary scripts that will yeild a RHEL node that's ideal for a large scale edge environment. When nodes are deployed in numbers ranging from 10s of thousands into the millions, we need to think differently about how we interact with the fleet. The example kickstart includes a few recommended settings and configs that can be built upon and adapted for other use cases. The content of this repo will need to be altered for your environment and is not intended to be used as is.
 
+Everything shown here can be further enhanced using tools like Ansible. 
+
 ### Content
 #### imagebuilder.sh
 A simple example to demonstrate Image Builder's CLI and how to create an rpm-ostree image.
@@ -19,19 +21,20 @@ All container OSs eventually run into the challenge of what *Linux* content belo
 
 ##### Nodes will automatically stage updates
 Many strategies to updating nodes are valid. This example promotes both the operating system update **and** container images being pulled down as they become available. 
-Enable staging for rpm-ostree:
-`echo AutomaticUpdatePolicy=stage >> /etc/rpm-ostreed.conf
-systemctl enable rpm-ostreed-automatic.timer`
+Enable staging for rpm-ostree by setting `AutomaticUpdatePolicy=stage` in `/etc/rpm-ostreed.conf`. The `rpm-ostreed-automatic.timer` will also need to be enabled as shown in the config.
 
 The example container uses the `io.containers.autoupdate=image` label to notify Podman that it should be running the latest image with the defined tag.
 
 ##### systemd timers will implement local actions and help us implement maintenance windows
 Timers are very similar to chron jobs, but also offer some amazing features that benefit this use case. Essentially they're managed like any other systemd unit file and the details for options can be found [here.](https://www.freedesktop.org/software/systemd/man/systemd.timer.html) 
-`$ systemctl list-timers
+```
+$ systemctl list-timers
 NEXT                         LEFT     LAST                         PASSED       UNIT                         ACTIVATES
 Thu 2020-09-03 00:42:57 UTC  21h left Wed 2020-09-02 00:08:54 UTC  3h 30min ago podman-auto-update.timer     podman-auto-update.service
 Thu 2020-09-03 01:30:00 UTC  21h left n/a                          n/a          applyupdate.timer            applyupdate.service
-Thu 2020-09-03 03:00:07 UTC  23h left Wed 2020-09-02 03:00:07 UTC  39min ago    rpm-ostreed-automatic.timer  rpm-ostreed-automatic.service`
+Thu 2020-09-03 03:00:07 UTC  23h left Wed 2020-09-02 03:00:07 UTC  39min ago    rpm-ostreed-automatic.timer  rpm-ostreed-automatic.service
+```
+
 ###### Splaying events
 Some actions like downloading an OS update or a container image should ideally use some type of *splay* to ensure that a reasonable load is placed on the registry and ostree mirror. Using RandomizedDelaySec=86400 will randomize the timer across a 24 hour period. This is a highly effect approach for events that are not particulatly time sensative.
 
