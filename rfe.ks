@@ -19,13 +19,14 @@ autopart --type=plain --fstype=xfs --nohome --encrypted --passphrase=temppass
 #part / --fstype=xfs --size 30000 --encrypted --passphrase=temppass
 #part /var --fstype=xfs --grow --encrypted --passphrase=temppass
 
+#example bootloader configuration to use cgroupv2 and configuring a password of "redhat" for the bootloader.
+#Note cgroupv2 is not the default for rhel 8 and using it requires crun to be used by podman instead of runc. Make sure crun is added to the blueprint and podman is properly configured to use it. 
+bootloader --append="systemd.unified_cgroup_hierarchy=1" --iscrypted --password=grub.pbkdf2.sha512.10000.B55C347A1F169EB33030DE4FE60C126D5CD5489B992EFEB2F9E55CF16BE45F95A32B836C94DE935A0EC0E6B4A55661EA6BC006BC07C0767B0CC951B4BD63D88E.BE90F7868A87FBFD46C82D5B5396652185B8A30CE0832D2C273EF10BF903D775B52D64113DCDA96E3E3642E2C6F3AD010BCF7BF415EDBB2EDE1EEB48C9BBB72F
+
 network --bootproto=dhcp
 
 #placeholder passwords are "redhat"
 rootpw --iscrypted $6$3OrUXJfD.64WiZl2$4/oBFyFgIyPI6LdLCbE.h99YBrFa..pC3x3WlHNH8mUf4ssZmhlhy17CHc0n3kAvHvWecpqunVOd/4kOGB7Ms.
-
-#work around for https://bugzilla.redhat.com/show_bug.cgi?id=1848453
-services --enable=ostree-remount
 
 #placeholder passwords are "redhat"
 user --name=core --groups=wheel --iscrypted --password=$6$3OrUXJfD.64WiZl2$4/oBFyFgIyPI6LdLCbE.h99YBrFa..pC3x3WlHNH8mUf4ssZmhlhy17CHc0n3kAvHvWecpqunVOd/4kOGB7Ms.
@@ -76,7 +77,14 @@ systemctl enable applyupdate.timer
 %end
 
 %post
-#This is an example container workload that will take advantage of Podman's new autoupdate feature
+#This is an example container workload that will take advantage of Podman's new autoupdate feature and default to crun for cgroupv2
+
+cat > /etc/containers/containers.conf << 'EOF'
+[engine]
+
+runtime="crun"
+EOF
+
 #Add the podman timer & service
 
 cat > /etc/systemd/system/podman-auto-update.service << EOF
