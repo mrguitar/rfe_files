@@ -43,3 +43,9 @@ For events like applying OS updates, it's best to carefully target a maintenance
 
 ##### Local filesystems are encrypted and the TPM chip will be used to automatically unlock the disks.
 While disk encryption does not provide protection at runtime, it does protect against disks being removed from a device and data being at risk. We support TPM2 chips for storing the luks passphrase. It's recommended that systems in unsecure facilities have security properly configured at the firmware level as well.
+
+##### cgroup v2 is enabled in the OS & podman in this example.
+CGroup v2 offers a lot of value. In short, it provided better security and isolation for any nested cgroups, many common actions are much lighter weight than v1, and the memory controller provides amazing amount of flexibility beyond just a hard cap to invoke the OOM killer. Simply append `systemd.unified_cgroup_hierarchy=1` to the kernel to switch to v2 for the OS. At the time of writing this, Podman will need to use crun as the runtime to launch containers with v2. Add `runtime="crun"` to `containers.conf` to alter the default of runc.
+
+##### The bootloader is password protected
+This is standard practice for systems with unprotected console access. This complements the TPM & disk encryption and prevents users from altering the boot options for the system.
