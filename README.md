@@ -27,11 +27,14 @@ The example container uses the `io.containers.autoupdate=image` label to notify 
 
 ##### systemd timers will implement local actions and help us implement maintenance windows
 Timers are very similar to chron jobs, but also offer some amazing features that benefit this use case. Essentially they're managed like any other systemd unit file and the details for options can be found [here.](https://www.freedesktop.org/software/systemd/man/systemd.timer.html) 
-`$ systemctl list-timers
+```
+$ systemctl list-timers
 NEXT                         LEFT     LAST                         PASSED       UNIT                         ACTIVATES
 Thu 2020-09-03 00:42:57 UTC  21h left Wed 2020-09-02 00:08:54 UTC  3h 30min ago podman-auto-update.timer     podman-auto-update.service
 Thu 2020-09-03 01:30:00 UTC  21h left n/a                          n/a          applyupdate.timer            applyupdate.service
-Thu 2020-09-03 03:00:07 UTC  23h left Wed 2020-09-02 03:00:07 UTC  39min ago    rpm-ostreed-automatic.timer  rpm-ostreed-automatic.service`
+Thu 2020-09-03 03:00:07 UTC  23h left Wed 2020-09-02 03:00:07 UTC  39min ago    rpm-ostreed-automatic.timer  rpm-ostreed-automatic.service
+```
+
 ###### Splaying events
 Some actions like downloading an OS update or a container image should ideally use some type of *splay* to ensure that a reasonable load is placed on the registry and ostree mirror. Using RandomizedDelaySec=86400 will randomize the timer across a 24 hour period. This is a highly effect approach for events that are not particulatly time sensative.
 
