@@ -10,14 +10,14 @@ zerombr
 clearpart --all --initlabel
 
 #uncomment for a simple setup 
-#autopart --type=plain --fstype=xfs --nohome
+autopart --type=plain --fstype=xfs --nohome --encrypted --passphrase=temppass
 
 #this will create a fixed / and use the majority of the disk for /var
-part /boot/efi --fstype=vfat --size=600
-part /boot --fstype=xfs --size=1000
-part swap --recommended 
-part / --fstype=xfs --size 30000 --encrypted --passphrase=temppass
-part /var --fstype=xfs --grow --encrypted --passphrase=temppass
+#part /boot/efi --fstype=vfat --size=600
+#part /boot --fstype=xfs --size=1000
+#part swap --recommended 
+#part / --fstype=xfs --size 30000 --encrypted --passphrase=temppass
+#part /var --fstype=xfs --grow --encrypted --passphrase=temppass
 
 network --bootproto=dhcp
 
@@ -41,12 +41,11 @@ ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=http://192.168.8
 echo AutomaticUpdatePolicy=stage >> /etc/rpm-ostreed.conf
 systemctl enable rpm-ostreed-automatic.timer
 
-#configure clevis to unlock the luks volumes using the TPM2. Adjust /dev/vda appropriately. 
-clevis luks bind -f -k- -d /dev/vda2 tpm2 '{}' \ <<<"temppass"
-clevis luks bind -f -k- -d /dev/vda6 tpm2 '{}' \ <<<"temppass"
-
-#Optional to wipe the key and only use the TPM2. 
-#cryptsetup luksRemoveKey /dev/vda2 <<< "temppass"
+#configure clevis to unlock the luks volumes using the TPM2. 
+#clevis luks bind -f -k- -d /dev/vda2 tpm2 '{}' \ <<<"temppass"
+for dev in $(lsblk -p -n -s -r | awk '$6 == "crypt" { getline; print $1 }' | sort -u); do
+    clevis luks bind -f -d "${dev}" tpm2 {} <<< temppass
+done
 
 %end
 
@@ -57,9 +56,9 @@ cat > /etc/systemd/system/applyupdate.service << EOF
 Description=Apply Update Check
 
 [Service]
-Type=simple
-ExecStart=/usr/local/sbin/applyupdatecheck.sh
-EOF 
+Type=oneshot
+ExecStart=/bin/sh -c 'if [[ $(rpm-ostree status -v | grep "Staged: yes") ]]; then systemctl --message="Applying OTA update" reboot; else logger "Running latest available update"; fi'
+EOF
 
 cat > /etc/systemd/system/applyupdate.timer << EOF
 [Unit]
@@ -73,17 +72,6 @@ OnCalendar=*-*-* 01:30:00
 WantedBy=multi-user.target
 EOF
 
-cat > /usr/local/sbin/applyupdatecheck.sh << EOF
-#!/bin/bash
-
-if [[ $(rpm-ostree status -v | grep "Staged: yes") ]]; then
-   systemctl --message="Applying OTA update" reboot
-else
-   echo "Latest available update already applied"
-fi
-EOF
-
-systemctl daemon-reload
 systemctl enable applyupdate.timer
 %end
 
@@ -145,15 +133,9 @@ WantedBy=multi-user.target default.target
 EOF
 
 
-#These steps are optional, but are useful for generating load on the device. Follow the example here: https://fedoramagazine.org/running-rosettahome-on-a-raspberry-pi-with-fedora-iot/
+#Example workload from: https://fedoramagazine.org/running-rosettahome-on-a-raspberry-pi-with-fedora-iot/
 #create host mount points
 mkdir -p /opt/appdata/boinc/slots /opt/appdata/boinc/locale
-#pull & run the image
-#podman run --rm --name boinc -dt -p 31416:31416 -v /opt/appdata/boinc:/var/lib/boinc:Z boinc/client:latest
-#provide your account key to actually accept a workload. 
-#podman exec boinc boinccmd --project_attach https://boinc.bakerlab.org/rosetta/ 2160739_cadd20314e4ef804f1d95ce2862c8f73
-#podman stop boinc
 
-systemctl daemon-reload
 systemctl enable podman-auto-update.timer container-boinc.service
 %end
